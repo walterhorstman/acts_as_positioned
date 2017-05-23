@@ -74,6 +74,7 @@ module ActsAsPositioned
 
   def acts_as_positioned_validation(column, scope_columns)
     return if errors[column].any?
+    return if !send(:"#{column}_changed?") && scope_columns.none? { |sc| send("#{sc}_changed?") }
 
     scope = acts_as_positioned_scope(column, scope_columns)
     scope = scope.where(scope.arel_table[scope.primary_key].not_eq(id)) unless new_record?
