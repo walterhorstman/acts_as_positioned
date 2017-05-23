@@ -78,9 +78,8 @@ module ActsAsPositioned
 
     scope = acts_as_positioned_scope(column, scope_columns)
     scope = scope.where(scope.arel_table[scope.primary_key].not_eq(id)) unless new_record?
-    options = { attributes: column, allow_nil: true, only_integer: true, greater_than_or_equal_to: 0,
-                less_than_or_equal_to: (scope.maximum(column) || -1) + 1 }
-
+    options = { attributes: column, allow_nil: true, greater_than_or_equal_to: 0, less_than_or_equal_to: scope.count,
+                only_integer: true }
     ActiveModel::Validations::NumericalityValidator.new(options).validate(self)
   end
 end
