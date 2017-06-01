@@ -2,7 +2,7 @@ $LOAD_PATH.push(File.expand_path('../lib', __FILE__))
 
 Gem::Specification.new do |s|
   s.name = 'acts_as_positioned'
-  s.version = '0.0.1'
+  s.version = '0.0.2'
   s.authors = ['Walter Horstman']
   s.email = ['walter.horstman@itonrails.com']
   s.summary = 'Lightweight ordering of models in ActiveRecord 3 or higher'
