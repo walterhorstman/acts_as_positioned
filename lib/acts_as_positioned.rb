@@ -30,17 +30,22 @@ module ActsAsPositioned
 
   private
 
+  def aap_execute_query(column, scope, downwards)
+    quoted_column = scope.connection.quote_column_name(column)
+    scope.update_all("#{quoted_column} = #{quoted_column} #{downwards ? '+' : '-'} 1")
+  end
+
   def aap_insert_position(column, scope_columns)
-    scope = aap_scope(column, scope_columns)
-    scope.where(scope.arel_table[column].gteq(send(column))).update_all("#{column} = #{column} + 1")
+    scope = aap_scope(column, scope_columns, false)
+    aap_execute_query(column, scope.where(scope.arel_table[column].gteq(send(column))), true)
   end
 
   def aap_remove_position(column, scope_columns)
     scope = aap_scope(column, scope_columns, true)
-    scope.where(scope.arel_table[column].gt(send("#{column}_was"))).update_all("#{column} = #{column} - 1")
+    aap_execute_query(column, scope.where(scope.arel_table[column].gt(send("#{column}_was"))), false)
   end
 
-  def aap_scope(column, scope_columns, use_old_values = false)
+  def aap_scope(column, scope_columns, use_old_values)
     # When using the old values, make sure to overwrite the attribute values with the old values.
     attrs = use_old_values ? attributes.merge(changed_attributes) : attributes
     self.class.base_class.where(attrs.slice(*scope_columns)).where.not(column => nil)
@@ -48,12 +53,11 @@ module ActsAsPositioned
 
   def aap_switch_positions(column, scope_columns)
     old_value, new_value = changes[column]
-    from, to, sign = old_value < new_value ? [old_value + 1, new_value, '-'] : [new_value, old_value - 1, '+']
+    from = [old_value + 1, new_value].min
+    to = [old_value - 1, new_value].max
 
-    scope = aap_scope(column, scope_columns)
-    statement = "#{column} = #{column} #{sign} 1"
-    statement = ", #{locking_column} = #{locking_column} + 1" if scope.locking_enabled?
-    scope.where(column => from.eql?(to) ? from : from..to).update_all(statement)
+    aap_execute_query(column, aap_scope(column, scope_columns, false).where(column => from.eql?(to) ? from : from..to),
+                      old_value > new_value)
   end
 
   def aap_update_position(column, scope_columns)
@@ -79,7 +83,7 @@ module ActsAsPositioned
   def aap_validate_position(column, scope_columns)
     return if errors[column].present? || (changes.keys & ([column] + scope_columns)).empty?
 
-    scope = aap_scope(column, scope_columns)
+    scope = aap_scope(column, scope_columns, false)
     options = { attributes: column, allow_nil: true, greater_than_or_equal_to: 0, only_integer: true,
                 less_than_or_equal_to: scope.where.not(scope.primary_key => id).count }
     ActiveModel::Validations::NumericalityValidator.new(options).validate(self)
