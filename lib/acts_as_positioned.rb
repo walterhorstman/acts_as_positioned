@@ -81,7 +81,7 @@ module ActsAsPositioned
   end
 
   def aap_validate_position(column, scope_columns)
-    return if errors[column].present? || (changes.keys & ([column] + scope_columns)).empty?
+    return if send(column).nil? || errors[column].present? || (changes.keys & ([column] + scope_columns)).empty?
 
     scope = aap_scope(column, scope_columns, false)
     options = { attributes: column, allow_nil: true, greater_than_or_equal_to: 0, only_integer: true,
