@@ -36,11 +36,15 @@ module ActsAsPositioned
   end
 
   def aap_insert_position(column, scope_columns)
+    return if send(column).nil?
+
     scope = aap_scope(column, scope_columns, false)
     aap_execute_query(column, scope.where(scope.arel_table[column].gteq(send(column))), true)
   end
 
   def aap_remove_position(column, scope_columns)
+    return if send("#{column}_was").nil?
+
     scope = aap_scope(column, scope_columns, true)
     aap_execute_query(column, scope.where(scope.arel_table[column].gt(send("#{column}_was"))), false)
   end
